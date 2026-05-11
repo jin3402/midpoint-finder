@@ -7,7 +7,7 @@ import { defineConfig } from '@apps-in-toss/web-framework/config'
 export default defineConfig({
   appName: 'midpoint-finder', // 콘솔에 등록한 앱 ID(고유 키)
   brand: {
-    displayName: 'midpoint-finder',
+    displayName: '중간지점찾기',
     primaryColor: '#3182f6',
     icon: 'public/icon.png',
   },

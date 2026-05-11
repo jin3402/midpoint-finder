@@ -177,7 +177,7 @@ export default function MiddlePointFinder() {
     const Status = services?.Status
 
     if (!kakaoMaps || !PlacesCtor || !Status) {
-      setFindError('카카오 장소 검색 서비스를 불러오지 못했어요.')
+      setFindError('지도 장소 검색 서비스를 불러오지 못했어요.')
       return
     }
 
@@ -323,7 +323,7 @@ export default function MiddlePointFinder() {
 
     if (!mapElRef.current) return
     if (!kakaoAppKey) {
-      setKakaoError('카카오 지도 API 키를 `.env`의 `VITE_KAKAO_MAP_APPKEY`로 설정해 주세요.')
+      setKakaoError('지도 API 키를 `.env`의 `VITE_KAKAO_MAP_APPKEY`로 설정해 주세요.')
       return
     }
     if (mapInstance) return // 이미 지도가 있으면 새로 안 그림
