@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button, TextField } from '@toss/tds-mobile'
+import { useFullScreenAd } from '../ads/useFullScreenAd'
 import type { LatLng } from './geo'
 import { arithmeticMeanLatLng } from './geo'
 import type { KakaoMap, KakaoMarker, KakaoPlaces, KakaoPlacesResult, KakaoServicesStatus } from '../../types/kakao'
@@ -117,6 +118,7 @@ export default function MiddlePointFinder() {
   const [kakaoError, setKakaoError] = useState<string | null>(null)
   const [findError, setFindError] = useState<string | null>(null)
   const [isFinding, setIsFinding] = useState(false)
+  const { showAd } = useFullScreenAd()
 
   const mapElRef = useRef<HTMLDivElement | null>(null)
   const [mapInstance, setMapInstance] = useState<KakaoMap | null>(null)
@@ -204,11 +206,14 @@ export default function MiddlePointFinder() {
         lat: formatLatLng(mean.lat),
         lng: formatLatLng(mean.lng),
       })
+
+      // 계산 완료 후 전면 광고 → 닫히면(또는 미지원/실패 시) 결과 화면
+      await showAd()
       setStep('result')
     } finally {
       setIsFinding(false)
     }
-  }, [addresses, clearResult])
+  }, [addresses, clearResult, showAd])
 
   const searchNearbyPlaces = useCallback(
     async (targetMidpoint: LatLng) => {
