@@ -13,6 +13,7 @@ export type KakaoMarkerImage = unknown
 
 export interface KakaoMap {
   setBounds(bounds: KakaoLatLngBounds): void
+  panTo(position: KakaoLatLng): void
 }
 
 export interface KakaoMaps {
