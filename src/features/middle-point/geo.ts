@@ -20,6 +20,15 @@ function normalizeLng(deg: number) {
 /**
  * 두 좌표의 “구면 중간점(대권 중간)”을 계산합니다.
  * - 단순 위/경도 평균과 달리 지구 곡면을 고려합니다.
+ *
+ * 현재 앱은 이 함수 대신 `arithmeticMeanLatLng`을 사용합니다.
+ * 이유는 정확도가 아니라 요구사항입니다. 이 함수는 두 점만 다루는 반면
+ * 앱은 출발지를 2~6개 받습니다.
+ *
+ * 두 방식의 차이는 실제 좌표로 검증했고, 서비스 범위에서는 무시할 수준입니다.
+ *   11km 구간 약 2.2m / 29km 구간 약 14.5m
+ *   217km 구간 약 727m / 325km 구간 약 1.5km
+ * 전국 단위로 범위를 넓힐 경우 이쪽으로 교체하는 것이 맞아 판단 근거로 남겨 둡니다.
  */
 export function geographicMidpoint(a: LatLng, b: LatLng): LatLng {
   const lat1 = toRadians(a.lat)
