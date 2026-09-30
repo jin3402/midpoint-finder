@@ -108,6 +108,8 @@ export default function MiddlePointFinder() {
   const mapElRef = useRef<HTMLDivElement | null>(null)
   const [mapInstance, setMapInstance] = useState<KakaoMap | null>(null)
   const markersRef = useRef<KakaoMarker[]>([])
+  /** 가장 최근에 시작한 검색만 결과를 반영하려고 쓰는 번호예요. (카테고리를 빠르게 바꿀 때 대비) */
+  const latestSearchIdRef = useRef(0)
   const kakaoAppKey = import.meta.env.VITE_KAKAO_MAP_APPKEY as string | undefined
 
   // 출발지 자동완성과 좌표 변환(Places)이 입력 화면에서 바로 필요해서, 화면에 들어오자마자 SDK를 불러와요.
@@ -127,6 +129,8 @@ export default function MiddlePointFinder() {
   }, [kakaoAppKey])
 
   const clearResult = useCallback(() => {
+    // 진행 중인 추천 장소 검색이 나중에 끝나도 결과를 반영하지 않게 해요.
+    latestSearchIdRef.current += 1
     setFindError(null)
     setPoints([])
     setMidpoint(null)
@@ -252,6 +256,9 @@ export default function MiddlePointFinder() {
           )
         })
 
+      const searchId = ++latestSearchIdRef.current
+      const isStale = () => searchId !== latestSearchIdRef.current
+
       setIsLoadingRecommendations(true)
 
       const seen = new Set<string>()
@@ -262,6 +269,8 @@ export default function MiddlePointFinder() {
 
         for (let page = 1; page <= 3; page++) {
           const { data, hasMore } = await fetchPage(radius, page)
+          // 그사이 카테고리가 바뀌었거나 다시 검색했다면 이 결과는 버려요.
+          if (isStale()) return
 
           for (const place of data) {
             const key = getPlaceKey(place)
