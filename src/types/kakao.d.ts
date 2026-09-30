@@ -1,3 +1,8 @@
+/**
+ * 이 앱에서 쓰는 Kakao Maps JavaScript SDK(`libraries=services`)의 최소 타입이에요.
+ * https://apis.map.kakao.com/web/documentation/
+ */
+
 export type KakaoLatLng = unknown
 export interface KakaoLatLngBounds {
   extend(position: KakaoLatLng): void
@@ -10,6 +15,7 @@ export interface KakaoMarker {
 }
 
 export type KakaoMarkerImage = unknown
+export type KakaoSize = unknown
 
 export interface KakaoMap {
   setBounds(bounds: KakaoLatLngBounds): void
@@ -29,28 +35,11 @@ export interface KakaoMaps {
     position: KakaoLatLng
     image?: KakaoMarkerImage
   }) => KakaoMarker
-  MarkerImage: new (
-    imageSrc: string,
-    options: { width: number; height: number },
-  ) => KakaoMarkerImage
+  MarkerImage?: new (imageSrc: string, size: KakaoSize) => KakaoMarkerImage
+  Size?: new (width: number, height: number) => KakaoSize
 }
 
-export type KakaoGeocodeStatus = 'OK' | 'ZERO_RESULT' | 'ERROR'
-
-export interface KakaoGeocoderResult {
-  x: string | number
-  y: string | number
-  address?: { address_name?: string }
-  road_address?: { address_name?: string }
-  place_name?: string
-}
-
-export interface KakaoGeocoder {
-  addressSearch: (
-    address: string,
-    callback: (results: KakaoGeocoderResult[], status: KakaoGeocodeStatus) => void,
-  ) => void
-}
+export type KakaoStatus = 'OK' | 'ZERO_RESULT' | 'ERROR'
 
 export interface KakaoPlacesResult {
   id?: string
@@ -65,6 +54,12 @@ export interface KakaoPlacesResult {
   y: string
 }
 
+export interface KakaoPagination {
+  hasNextPage?: boolean
+}
+
+export type KakaoSortBy = unknown
+
 export interface KakaoKeywordSearchOptions {
   /** 검색 중심 좌표 (카카오 `LatLng` 인스턴스). */
   location?: KakaoLatLng
@@ -75,24 +70,66 @@ export interface KakaoKeywordSearchOptions {
   page?: number
 }
 
+export interface KakaoCategorySearchOptions extends KakaoKeywordSearchOptions {
+  sort?: KakaoSortBy
+}
+
+export type KakaoPlacesCallback = (
+  data: KakaoPlacesResult[],
+  status: KakaoStatus,
+  pagination?: KakaoPagination,
+) => void
+
 export interface KakaoPlaces {
   keywordSearch: (
     keyword: string,
-    callback: (data: KakaoPlacesResult[], status: KakaoGeocodeStatus) => void,
+    callback: KakaoPlacesCallback,
     options?: KakaoKeywordSearchOptions,
+  ) => void
+  categorySearch: (
+    categoryCode: string,
+    callback: KakaoPlacesCallback,
+    options?: KakaoCategorySearchOptions,
+  ) => void
+}
+
+export interface KakaoRegionCodeResult {
+  /** H: 행정동, B: 법정동 */
+  region_type: 'H' | 'B'
+  region_1depth_name?: string
+  region_2depth_name?: string
+  region_3depth_name?: string
+}
+
+export interface KakaoCoord2AddressResult {
+  address?: { address_name?: string } | null
+  road_address?: { address_name?: string } | null
+}
+
+export interface KakaoGeocoder {
+  coord2RegionCode: (
+    lng: number,
+    lat: number,
+    callback: (result: KakaoRegionCodeResult[], status: KakaoStatus) => void,
+  ) => void
+  coord2Address: (
+    lng: number,
+    lat: number,
+    callback: (result: KakaoCoord2AddressResult[], status: KakaoStatus) => void,
   ) => void
 }
 
 export interface KakaoServicesStatus {
-  readonly OK: KakaoGeocodeStatus
-  readonly ZERO_RESULT: KakaoGeocodeStatus
-  readonly ERROR: KakaoGeocodeStatus
+  readonly OK: KakaoStatus
+  readonly ZERO_RESULT: KakaoStatus
+  readonly ERROR: KakaoStatus
 }
 
 export interface KakaoServices {
   Geocoder: new () => KakaoGeocoder
   Places: new () => KakaoPlaces
   Status: KakaoServicesStatus
+  SortBy: { DISTANCE: KakaoSortBy; ACCURACY: KakaoSortBy }
 }
 
 declare global {
@@ -104,4 +141,3 @@ declare global {
 }
 
 export {}
-
