@@ -3,6 +3,7 @@ import { Button, TextField } from '@toss/tds-mobile'
 import { useFullScreenAd } from '../ads/useFullScreenAd'
 import { usePromotionReward } from '../promotion/usePromotionReward'
 import { buildKakaoMapUrl, buildNaverMapSearchUrl, openExternalMapUrl, shareText } from '../share/shareUtils'
+import { loadKakaoMaps } from '../kakao/loadKakaoMaps'
 import type { LatLng } from './geo'
 import { arithmeticMeanLatLng } from './geo'
 import type { KakaoMap, KakaoMarker, KakaoPlaces, KakaoPlacesResult, KakaoServicesStatus } from '../../types/kakao'
@@ -41,42 +42,6 @@ const LOAD_MORE_STEP = 20
 /** 추천 장소를 구분하기 위한 고유 키예요. (id가 없으면 이름+좌표로 대체) */
 function getPlaceKey(place: KakaoPlacesResult) {
   return String(place.id ?? `${place.place_name}-${place.x}-${place.y}`)
-}
-
-let kakaoScriptLoadPromise: Promise<void> | null = null
-
-async function ensureKakaoMapsLoaded(appKey: string) {
-  if (window.kakao?.maps) return
-  if (kakaoScriptLoadPromise) return kakaoScriptLoadPromise
-
-  kakaoScriptLoadPromise = new Promise<void>((resolve, reject) => {
-    const scriptId = 'kakao-maps-sdk'
-    const existing = document.getElementById(scriptId) as HTMLScriptElement | null
-    if (existing) {
-      existing.addEventListener('load', () => resolve())
-      existing.addEventListener('error', () => reject(new Error('Kakao Maps SDK script load failed')))
-      return
-    }
-
-    const script = document.createElement('script')
-    script.id = scriptId
-    script.async = true
-    script.defer = true
-    script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(
-      appKey,
-    )}&autoload=false&libraries=services`
-    script.onload = () => {
-      if (window.kakao?.maps?.load) {
-        window.kakao.maps.load(() => resolve())
-        return
-      }
-      reject(new Error('Kakao Maps SDK loaded, but window.kakao.maps.load is not available'))
-    }
-    script.onerror = () => reject(new Error('Kakao Maps SDK script load failed'))
-    document.head.appendChild(script)
-  })
-
-  return kakaoScriptLoadPromise
 }
 
 function safeCreateMarkerImage(kakao: unknown, imageSrc: string, width = 46, height = 58) {
@@ -129,6 +94,7 @@ export default function MiddlePointFinder() {
   const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false)
   const [activeCategory, setActiveCategory] = useState<Category>('맛집')
   const [kakaoError, setKakaoError] = useState<string | null>(null)
+  const [isKakaoReady, setIsKakaoReady] = useState(false)
   const [findError, setFindError] = useState<string | null>(null)
   const [isFinding, setIsFinding] = useState(false)
   const { showAd } = useFullScreenAd()
@@ -143,6 +109,22 @@ export default function MiddlePointFinder() {
   const [mapInstance, setMapInstance] = useState<KakaoMap | null>(null)
   const markersRef = useRef<KakaoMarker[]>([])
   const kakaoAppKey = import.meta.env.VITE_KAKAO_MAP_APPKEY as string | undefined
+
+  // 출발지 자동완성과 좌표 변환(Places)이 입력 화면에서 바로 필요해서, 화면에 들어오자마자 SDK를 불러와요.
+  useEffect(() => {
+    if (!kakaoAppKey) return
+    let cancelled = false
+    loadKakaoMaps(kakaoAppKey)
+      .then(() => {
+        if (!cancelled) setIsKakaoReady(true)
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) setKakaoError(error instanceof Error ? error.message : String(error))
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [kakaoAppKey])
 
   const clearResult = useCallback(() => {
     setFindError(null)
@@ -186,18 +168,22 @@ export default function MiddlePointFinder() {
       return
     }
 
-    const kakaoMaps = window.kakao?.maps
-    const services = kakaoMaps?.services
-    const PlacesCtor = services?.Places
-    const Status = services?.Status
-
-    if (!kakaoMaps || !PlacesCtor || !Status) {
-      setFindError('지도 장소 검색 서비스를 불러오지 못했어요.')
+    if (!kakaoAppKey) {
+      setFindError('지도 API 키를 `.env`의 `VITE_KAKAO_MAP_APPKEY`로 설정해 주세요.')
       return
     }
 
     setIsFinding(true)
     try {
+      // 입력 화면 진입 시 시작한 SDK 로딩이 아직 안 끝났으면 여기서 기다려요.
+      const kakaoMaps = await loadKakaoMaps(kakaoAppKey).catch(() => null)
+      const PlacesCtor = kakaoMaps?.services?.Places
+      const Status = kakaoMaps?.services?.Status
+      if (!PlacesCtor || !Status) {
+        setFindError('지도 장소 검색 서비스를 불러오지 못했어요.')
+        return
+      }
+
       const places = new PlacesCtor()
       // 버튼 클릭 시점에만 비동기 장소 검색 수행
       const searched = await Promise.all(trimmed.map((keyword) => searchPlace(places, Status, keyword)))
@@ -224,7 +210,7 @@ export default function MiddlePointFinder() {
     } finally {
       setIsFinding(false)
     }
-  }, [addresses, clearResult])
+  }, [addresses, clearResult, kakaoAppKey])
 
   const searchNearbyPlaces = useCallback(
     async (targetMidpoint: LatLng) => {
@@ -358,10 +344,8 @@ export default function MiddlePointFinder() {
 
       ; (async () => {
         try {
-          await ensureKakaoMapsLoaded(kakaoAppKey)
+          const kakao = await loadKakaoMaps(kakaoAppKey)
           if (cancelled) return
-          const kakao = window.kakao?.maps
-          if (!kakao) throw new Error('카카오 지도 SDK가 정상적으로 로드되지 않았어요.')
 
           // 지도를 그리고 상태(State)에 쏙 저장합니다
           const newMap = new kakao.Map(container, {
@@ -455,7 +439,7 @@ export default function MiddlePointFinder() {
     }, 250)
 
     return () => window.clearTimeout(timeoutId)
-  }, [addresses, focusedAddressIndex])
+  }, [addresses, focusedAddressIndex, isKakaoReady])
 
   const selectAddressSuggestion = useCallback(
     (index: number, place: KakaoPlacesResult) => {
