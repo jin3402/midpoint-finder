@@ -33,6 +33,23 @@ const DEFAULT_PROMOTION_CODE = IS_PROMOTION_TEST_PHASE ? TEST_PROMOTION_CODE : P
 
 const STORAGE_KEY_PREFIX = 'midpoint-finder:promotion-reward:'
 
+/** 일부 WebView·사생활 보호 모드에서는 localStorage 접근 자체가 예외를 던져요. */
+function readStorage(key: string) {
+  try {
+    return window.localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+
+function writeStorage(key: string, value: string) {
+  try {
+    window.localStorage.setItem(key, value)
+  } catch {
+    // 저장에 실패해도 지급 결과에는 영향이 없어요.
+  }
+}
+
 export type GrantPromotionRewardOutcome =
   | { status: 'granted'; key: string }
   | { status: 'already-granted' }
@@ -49,11 +66,7 @@ export function usePromotionReward(promotionCode: string = DEFAULT_PROMOTION_COD
   const grantOnce = useCallback(async (): Promise<GrantPromotionRewardOutcome> => {
     const storageKey = `${STORAGE_KEY_PREFIX}${promotionCode}`
 
-    if (typeof window !== 'undefined' && window.localStorage.getItem(storageKey)) {
-      return { status: 'already-granted' }
-    }
-
-    if (isRequestingRef.current) {
+    if (readStorage(storageKey) || isRequestingRef.current) {
       return { status: 'already-granted' }
     }
 
@@ -72,10 +85,7 @@ export function usePromotionReward(promotionCode: string = DEFAULT_PROMOTION_COD
       }
 
       if ('key' in result) {
-        console.log('[프로모션] 포인트 지급 성공:', result.key)
-        if (typeof window !== 'undefined') {
-          window.localStorage.setItem(storageKey, result.key)
-        }
+        writeStorage(storageKey, result.key)
         return { status: 'granted', key: result.key }
       }
 

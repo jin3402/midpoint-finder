@@ -25,3 +25,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Apps in Toss 빌드 산출물 (npm run build)
+*.ait

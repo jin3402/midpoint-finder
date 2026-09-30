@@ -3,31 +3,33 @@ import { TossAds, type TossAdsAttachBannerOptions } from '@apps-in-toss/web-fram
 
 /**
  * 배너 광고 SDK 초기화와 배너 부착을 함께 처리하는 훅.
- * 여러 컴포넌트에서 호출해도 안전하며, 이미 초기화된 경우 중복 초기화를 시도하지 않습니다.
+ * 지원 여부는 처음 렌더링할 때 한 번 확인하고, 지원하는 환경에서만 초기화해요.
  */
 export function useTossBanner() {
+  const [isSupported] = useState(() => TossAds.initialize.isSupported())
   const [isInitialized, setIsInitialized] = useState(false)
-  const [isSupported, setIsSupported] = useState(true)
 
   useEffect(() => {
-    if (isInitialized) return
-
-    if (!TossAds.initialize.isSupported()) {
-      setIsSupported(false)
+    if (!isSupported) {
       console.warn('배너 광고 기능을 사용할 수 없는 환경이에요.')
       return
     }
 
-    setIsSupported(true)
+    let cancelled = false
     TossAds.initialize({
       callbacks: {
-        onInitialized: () => setIsInitialized(true),
+        onInitialized: () => {
+          if (!cancelled) setIsInitialized(true)
+        },
         onInitializationFailed: (error) => {
           console.error('배너 광고 SDK 초기화 실패:', error)
         },
       },
     })
-  }, [isInitialized])
+    return () => {
+      cancelled = true
+    }
+  }, [isSupported])
 
   const attachBanner = useCallback(
     (adGroupId: string, element: HTMLElement, options?: TossAdsAttachBannerOptions) => {

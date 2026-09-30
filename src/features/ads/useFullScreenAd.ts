@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { loadFullScreenAd, showFullScreenAd } from '@apps-in-toss/web-framework'
 
 /** 개발/테스트 전용 전면형 광고 ID. 운영 빌드에서는 사용하지 마세요. */
@@ -15,39 +15,26 @@ const DEFAULT_INTERSTITIAL_AD_GROUP_ID = import.meta.env.DEV
 type ShowAdResult = 'shown' | 'skipped'
 
 /**
- * 전면형/보상형 통합 광고를 미리 로드하고, 요청 시 표시하는 훅.
+ * 전면형 광고를 미리 로드하고, 요청 시 표시하는 훅.
  * load → show → (다음 load) 순서를 지키며, 미지원/실패 시 앱 흐름을 막지 않습니다.
+ * 로드 상태는 ref로만 들고 있어서 광고가 로드될 때 화면을 다시 그리지 않아요.
  */
 export function useFullScreenAd(adGroupId: string = DEFAULT_INTERSTITIAL_AD_GROUP_ID) {
-  const [isLoaded, setIsLoaded] = useState(false)
-  const [isSupported, setIsSupported] = useState(false)
   const isLoadedRef = useRef(false)
-  const isSupportedRef = useRef(false)
   const unregisterLoadRef = useRef<(() => void) | null>(null)
 
   const preload = useCallback(() => {
-    if (!loadFullScreenAd.isSupported()) {
-      isSupportedRef.current = false
-      setIsSupported(false)
-      return
-    }
-
-    isSupportedRef.current = true
-    setIsSupported(true)
+    if (!loadFullScreenAd.isSupported()) return
 
     unregisterLoadRef.current?.()
     unregisterLoadRef.current = loadFullScreenAd({
       options: { adGroupId },
       onEvent: (event) => {
-        if (event.type === 'loaded') {
-          isLoadedRef.current = true
-          setIsLoaded(true)
-        }
+        if (event.type === 'loaded') isLoadedRef.current = true
       },
       onError: (error) => {
         console.error('전면 광고 로드 실패:', error)
         isLoadedRef.current = false
-        setIsLoaded(false)
       },
     })
   }, [adGroupId])
@@ -62,41 +49,30 @@ export function useFullScreenAd(adGroupId: string = DEFAULT_INTERSTITIAL_AD_GROU
 
   const showAd = useCallback((): Promise<ShowAdResult> => {
     return new Promise((resolve) => {
-      if (!isSupportedRef.current || !isLoadedRef.current || !showFullScreenAd.isSupported()) {
+      if (!isLoadedRef.current || !showFullScreenAd.isSupported()) {
         resolve('skipped')
         return
+      }
+
+      const finish = (result: ShowAdResult) => {
+        isLoadedRef.current = false
+        preload()
+        resolve(result)
       }
 
       showFullScreenAd({
         options: { adGroupId },
         onEvent: (event) => {
-          switch (event.type) {
-            case 'dismissed':
-              isLoadedRef.current = false
-              setIsLoaded(false)
-              preload()
-              resolve('shown')
-              break
-            case 'failedToShow':
-              isLoadedRef.current = false
-              setIsLoaded(false)
-              preload()
-              resolve('skipped')
-              break
-            default:
-              break
-          }
+          if (event.type === 'dismissed') finish('shown')
+          else if (event.type === 'failedToShow') finish('skipped')
         },
         onError: (error) => {
           console.error('전면 광고 표시 실패:', error)
-          isLoadedRef.current = false
-          setIsLoaded(false)
-          preload()
-          resolve('skipped')
+          finish('skipped')
         },
       })
     })
   }, [adGroupId, preload])
 
-  return { isLoaded, isSupported, showAd }
+  return { showAd }
 }
