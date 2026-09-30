@@ -35,3 +35,17 @@ describe('useFullScreenAd', () => {
     expect(load.mock.calls.length).toBe(loadsBefore + 1)
   })
 })
+
+describe('토스 앱 밖에서', () => {
+  it('isSupported()가 예외를 던져도 훅이 멈추지 않고 광고를 건너뛴다', async () => {
+    const notInToss = () => {
+      throw new Error('loadFullScreenAd_isSupported is not a constant handler')
+    }
+    vi.mocked(load.isSupported).mockImplementation(notInToss)
+    vi.mocked(show.isSupported).mockImplementation(notInToss)
+
+    const { result } = renderHook(() => useFullScreenAd('ad-id'))
+    await expect(result.current.showAd()).resolves.toBe('skipped')
+    expect(load).not.toHaveBeenCalled()
+  })
+})

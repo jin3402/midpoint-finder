@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { loadFullScreenAd, showFullScreenAd } from '@apps-in-toss/web-framework'
+import { isSupportedSafely } from './isSupported'
 
 /** 개발/테스트 전용 전면형 광고 ID. 운영 빌드에서는 사용하지 마세요. */
 export const TEST_INTERSTITIAL_AD_GROUP_ID = 'ait-ad-test-interstitial-id'
@@ -24,7 +25,7 @@ export function useFullScreenAd(adGroupId: string = DEFAULT_INTERSTITIAL_AD_GROU
   const unregisterLoadRef = useRef<(() => void) | null>(null)
 
   const preload = useCallback(() => {
-    if (!loadFullScreenAd.isSupported()) return
+    if (!isSupportedSafely(() => loadFullScreenAd.isSupported())) return
 
     unregisterLoadRef.current?.()
     unregisterLoadRef.current = loadFullScreenAd({
@@ -49,7 +50,7 @@ export function useFullScreenAd(adGroupId: string = DEFAULT_INTERSTITIAL_AD_GROU
 
   const showAd = useCallback((): Promise<ShowAdResult> => {
     return new Promise((resolve) => {
-      if (!isLoadedRef.current || !showFullScreenAd.isSupported()) {
+      if (!isLoadedRef.current || !isSupportedSafely(() => showFullScreenAd.isSupported())) {
         resolve('skipped')
         return
       }
