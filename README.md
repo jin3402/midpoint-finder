@@ -43,7 +43,7 @@
 * **Platform**: Apps In Toss Web Framework (WebView)
 * **API**: Kakao Maps JavaScript SDK (`services` 라이브러리 — Places 검색)
 * **Design**: Toss Design System (TDS)
-* **기타**: TossAds 배너 / 전면 광고, `grantPromotionReward`
+* **기타**: 광고·프로모션 없음 (v1.0.8부터 제거)
 
 ## 🔐 권한
 

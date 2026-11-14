@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button, TextField } from '@toss/tds-mobile'
-import { useFullScreenAd } from '../ads/useFullScreenAd'
-import { usePromotionReward } from '../promotion/usePromotionReward'
 import { buildKakaoMapUrl, buildNaverMapSearchUrl, openExternalMapUrl, shareText } from '../share/shareUtils'
 import type { LatLng } from './geo'
 import { arithmeticMeanLatLng } from './geo'
@@ -131,8 +129,6 @@ export default function MiddlePointFinder() {
   const [kakaoError, setKakaoError] = useState<string | null>(null)
   const [findError, setFindError] = useState<string | null>(null)
   const [isFinding, setIsFinding] = useState(false)
-  const { showAd } = useFullScreenAd()
-  const { grantOnce: grantPromotionRewardOnce } = usePromotionReward()
   const [focusedAddressIndex, setFocusedAddressIndex] = useState<number | null>(null)
   const [addressSuggestions, setAddressSuggestions] = useState<KakaoPlacesResult[]>([])
   const [shareToast, setShareToast] = useState<string | null>(null)
@@ -498,13 +494,8 @@ export default function MiddlePointFinder() {
       } else if (result === 'failed') {
         setShareToast('공유에 실패했어요. 잠시 후 다시 시도해 주세요.')
       }
-
-      // 공유(또는 복사)에 성공하면 "중간지점 공유하면 3원 지급" 프로모션 지급 시도 (기기당 1회)
-      if (result === 'shared' || result === 'copied') {
-        void grantPromotionRewardOnce()
-      }
     },
-    [grantPromotionRewardOnce],
+    [],
   )
 
   const handleSharePlace = useCallback(
@@ -531,7 +522,7 @@ export default function MiddlePointFinder() {
     setActionSheetPlace(null)
   }, [actionSheetPlace, handleSharePlace])
 
-  // 카카오맵/네이버지도로 이동하기 전에 전면 광고를 보여주고, 닫히면(또는 미지원/실패 시) 바로 이동해요.
+  // 카카오맵/네이버지도로 바로 이동해요.
   const handleViewOnMap = useCallback(
     async (place: KakaoPlacesResult, provider: 'kakao' | 'naver') => {
       const name = place.place_name || '추천 장소'
@@ -549,14 +540,13 @@ export default function MiddlePointFinder() {
 
       setIsOpeningMap(true)
       try {
-        await showAd()
         await openExternalMapUrl(url)
       } finally {
         setIsOpeningMap(false)
         setActionSheetPlace(null)
       }
     },
-    [showAd],
+    [],
   )
 
   const handleShareMidpoint = useCallback(() => {
