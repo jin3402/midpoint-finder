@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { TossAds, type TossAdsAttachBannerOptions } from '@apps-in-toss/web-framework'
+import { isTossApp } from '../../lib/environment'
 
 /**
  * 배너 광고 SDK 초기화와 배너 부착을 함께 처리하는 훅.
@@ -12,7 +13,7 @@ export function useTossBanner() {
   useEffect(() => {
     if (isInitialized) return
 
-    if (!TossAds.initialize.isSupported()) {
+    if (!isTossApp() || !TossAds.initialize.isSupported()) {
       setIsSupported(false)
       console.warn('배너 광고 기능을 사용할 수 없는 환경이에요.')
       return

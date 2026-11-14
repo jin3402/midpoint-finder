@@ -186,6 +186,15 @@ export default function MiddlePointFinder() {
       return
     }
 
+    // 장소 검색(services)도 SDK가 로드돼야 쓸 수 있어요. 아직 안 불러왔다면 여기서 기다려요.
+    if (kakaoAppKey) {
+      try {
+        await ensureKakaoMapsLoaded(kakaoAppKey)
+      } catch (error) {
+        console.error('카카오 지도 SDK 로드 실패:', error)
+      }
+    }
+
     const kakaoMaps = window.kakao?.maps
     const services = kakaoMaps?.services
     const PlacesCtor = services?.Places
@@ -224,7 +233,15 @@ export default function MiddlePointFinder() {
     } finally {
       setIsFinding(false)
     }
-  }, [addresses, clearResult])
+  }, [addresses, clearResult, kakaoAppKey])
+
+  // 출발지 자동완성도 SDK를 쓰므로, 입력 화면에 들어오자마자 미리 불러와요.
+  useEffect(() => {
+    if (!kakaoAppKey) return
+    ensureKakaoMapsLoaded(kakaoAppKey).catch((error) => {
+      console.error('카카오 지도 SDK 미리 불러오기 실패:', error)
+    })
+  }, [kakaoAppKey])
 
   const searchNearbyPlaces = useCallback(
     async (targetMidpoint: LatLng) => {

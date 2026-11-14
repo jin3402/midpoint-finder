@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { loadFullScreenAd, showFullScreenAd } from '@apps-in-toss/web-framework'
+import { isTossApp } from '../../lib/environment'
 
 /** 개발/테스트 전용 전면형 광고 ID. 운영 빌드에서는 사용하지 마세요. */
 export const TEST_INTERSTITIAL_AD_GROUP_ID = 'ait-ad-test-interstitial-id'
@@ -26,7 +27,8 @@ export function useFullScreenAd(adGroupId: string = DEFAULT_INTERSTITIAL_AD_GROU
   const unregisterLoadRef = useRef<(() => void) | null>(null)
 
   const preload = useCallback(() => {
-    if (!loadFullScreenAd.isSupported()) {
+    // 일반 웹 브라우저에서는 isSupported() 자체가 예외를 던지므로 먼저 걸러요.
+    if (!isTossApp() || !loadFullScreenAd.isSupported()) {
       isSupportedRef.current = false
       setIsSupported(false)
       return

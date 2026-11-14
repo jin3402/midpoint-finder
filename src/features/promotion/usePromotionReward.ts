@@ -1,5 +1,6 @@
 import { useCallback, useRef } from 'react'
 import { grantPromotionReward } from '@apps-in-toss/web-framework'
+import { isTossApp } from '../../lib/environment'
 
 /**
  * "중간지점 공유하면 3원 지급" 프로모션의 콘솔 테스트용 코드예요.
@@ -47,6 +48,11 @@ export function usePromotionReward(promotionCode: string = DEFAULT_PROMOTION_COD
   const isRequestingRef = useRef(false)
 
   const grantOnce = useCallback(async (): Promise<GrantPromotionRewardOutcome> => {
+    // 토스 포인트는 토스 앱 안에서만 지급할 수 있어요. (일반 웹에서는 지급하지 않아요)
+    if (!isTossApp()) {
+      return { status: 'unsupported' }
+    }
+
     const storageKey = `${STORAGE_KEY_PREFIX}${promotionCode}`
 
     if (typeof window !== 'undefined' && window.localStorage.getItem(storageKey)) {

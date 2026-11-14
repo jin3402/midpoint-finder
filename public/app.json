@@ -1,6 +1,6 @@
 {
     "deploymentId": "midpoint-finder",
     "name": "midpoint-finder",
-    "version": "1.0.0",
+    "version": "1.0.7",
     "main": "index.html"
 }

@@ -1,4 +1,5 @@
 import { openURL } from '@apps-in-toss/web-framework'
+import { isTossApp } from '../../lib/environment'
 
 /** 검색어로 네이버지도 장소 검색 결과 페이지 링크를 생성해요. (좌표 변환이 필요 없어 항상 정확해요) */
 export function buildNaverMapSearchUrl(query: string): string | null {
@@ -35,11 +36,13 @@ export function buildKakaoMapUrl(place: {
  * 지원하지 않는 환경(일반 웹 브라우저 등)에서는 새 탭으로 열어요.
  */
 export async function openExternalMapUrl(url: string): Promise<void> {
-  try {
-    await openURL(url)
-    return
-  } catch {
-    // openURL을 지원하지 않는 환경이면 새 탭으로 대체해요.
+  if (isTossApp()) {
+    try {
+      await openURL(url)
+      return
+    } catch {
+      // openURL을 지원하지 않는 앱 버전이면 새 탭으로 대체해요.
+    }
   }
 
   if (typeof window !== 'undefined') {
