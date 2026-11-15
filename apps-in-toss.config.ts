@@ -11,7 +11,7 @@ import { defineConfig } from '@apps-in-toss/web-framework/config'
  */
 export default defineConfig({
   // 콘솔에 등록한 앱 ID(고유 키)
-  appName: 'midpoint-finder',
+  appName: 'midpoint-finder2',
 
   brand: {
     // 토스 사용자에게 가장 익숙하고 신뢰감을 주는 '토스 블루' 컬러를 사용하여 직관적인 UI를 제공합니다.
